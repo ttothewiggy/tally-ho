@@ -1,0 +1,192 @@
+#root {
+  min-height: 100vh;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 2rem;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  color: #2f2924;
+  background:
+    radial-gradient(circle at top left, rgba(214, 185, 156, 0.35), transparent 32rem),
+    linear-gradient(135deg, #f7efe5 0%, #eee1d2 52%, #e6d3c0 100%);
+}
+
+.hero,
+.summary-card,
+.tally-grid {
+  width: min(100%, 760px);
+  margin-inline: auto;
+}
+
+.hero {
+  padding: 4rem 0 2rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.75rem;
+  color: #8f6047;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 680px;
+  margin: 0;
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  font-weight: 750;
+  line-height: 0.9;
+  letter-spacing: -0.08em;
+}
+
+.subtitle {
+  max-width: 480px;
+  margin: 1.25rem 0 0;
+  color: #6f6258;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(101, 80, 65, 0.16);
+  border-radius: 1.25rem;
+  background: rgba(255, 251, 245, 0.68);
+  box-shadow: 0 24px 80px rgba(99, 72, 48, 0.11);
+  backdrop-filter: blur(18px);
+}
+
+.summary-label {
+  margin: 0;
+  color: #7b6d62;
+  font-size: 0.85rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary-number {
+  margin: 0.25rem 0 0;
+  font-size: 3rem;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.reset-button {
+  border: 1px solid rgba(101, 80, 65, 0.18);
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  color: #4f4037;
+  background: rgba(255, 255, 255, 0.34);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.reset-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(101, 80, 65, 0.32);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.tally-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.tally-card {
+  display: flex;
+  min-height: 7rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(101, 80, 65, 0.14);
+  border-radius: 1.35rem;
+  padding: 1.15rem;
+  color: #2f2924;
+  background: rgba(255, 251, 245, 0.58);
+  box-shadow: 0 18px 50px rgba(99, 72, 48, 0.08);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.tally-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(101, 80, 65, 0.24);
+  background: rgba(255, 251, 245, 0.86);
+  box-shadow: 0 24px 70px rgba(99, 72, 48, 0.12);
+}
+
+.tally-card:active {
+  transform: translateY(0);
+}
+
+.tally-name {
+  color: #4f4037;
+  font-size: 1.05rem;
+  font-weight: 680;
+}
+
+.tally-count {
+  color: #8f6047;
+  font-size: 2.4rem;
+  font-weight: 780;
+  line-height: 1;
+  letter-spacing: -0.07em;
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 1rem;
+  }
+
+  .hero {
+    padding: 2.5rem 0 1.5rem;
+  }
+
+  .summary-card {
+    border-radius: 1rem;
+  }
+
+  .tally-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tally-card {
+    min-height: 5.5rem;
+  }
+}
+
+.tally-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.tally-description {
+  max-width: 22rem;
+  color: #7b6d62;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
