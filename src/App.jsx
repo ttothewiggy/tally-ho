@@ -1,91 +1,103 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 
-const initialTallies = [
+const activities = [
   {
-    id: 1,
+    id: 'spanish',
     name: 'Spanish',
     description: 'One tiny bit of practice.',
-    count: 0,
   },
   {
-    id: 2,
+    id: 'stretch',
     name: 'Stretch',
     description: 'Loosen up for a minute.',
-    count: 0,
   },
   {
-    id: 3,
+    id: 'walk',
     name: 'Walk',
     description: 'Step outside and move.',
-    count: 0,
   },
   {
-    id: 4,
+    id: 'read',
     name: 'Read',
     description: 'A page is enough.',
-    count: 0,
   },
   {
-    id: 5,
+    id: 'code',
     name: 'Code',
     description: 'Make one small thing better.',
-    count: 0,
   },
   {
-    id: 6,
+    id: 'life-admin',
     name: 'Life admin',
     description: 'Clear one nagging task.',
-    count: 0,
   },
   {
-    id: 7,
+    id: 'surf-fitness',
     name: 'Surf fitness',
     description: 'Something for paddling, pop-ups, or mobility.',
-    count: 0,
   },
   {
-    id: 8,
+    id: 'chores',
     name: 'Chores',
     description: 'Reset the space a little.',
-    count: 0,
   },
 ]
 
+function getTodayKey() {
+  return new Date().toLocaleDateString('en-CA')
+}
+
 function App() {
-  const [tallies, setTallies] = useState(() => {
-  const savedTallies = localStorage.getItem('tally-ho-tallies')
+  const todayKey = getTodayKey()
 
-  if (savedTallies) {
-    return JSON.parse(savedTallies)
-  }
+  const [activityLog, setActivityLog] = useState(() => {
+    const savedActivityLog = localStorage.getItem('tally-ho-activity-log')
 
-  return initialTallies
-})
+    if (savedActivityLog) {
+      return JSON.parse(savedActivityLog)
+    }
+
+    return {}
+  })
 
   useEffect(() => {
-    localStorage.setItem('tally-ho-tallies', JSON.stringify(tallies))
-  }, [tallies])
+    localStorage.setItem('tally-ho-activity-log', JSON.stringify(activityLog))
+  }, [activityLog])
 
-  const totalCount = tallies.reduce((total, tally) => total + tally.count, 0)
+  const todayActivity = activityLog[todayKey] || {}
 
-  function incrementTally(id) {
-    setTallies((currentTallies) =>
-      currentTallies.map((tally) =>
-        tally.id === id
-          ? { ...tally, count: tally.count + 1 }
-          : tally
-      )
-    )
+  const totalCount = Object.values(todayActivity).reduce(
+    (total, activity) => total + activity.count,
+    0
+  )
+
+  function incrementTally(activityId) {
+    setActivityLog((currentLog) => {
+      const currentDay = currentLog[todayKey] || {}
+      const currentActivity = currentDay[activityId] || {
+        count: 0,
+        minutes: 0,
+      }
+
+      return {
+        ...currentLog,
+        [todayKey]: {
+          ...currentDay,
+          [activityId]: {
+            ...currentActivity,
+            count: currentActivity.count + 1,
+          },
+        },
+      }
+    })
   }
 
-  function resetTallies() {
-    setTallies((currentTallies) =>
-      currentTallies.map((tally) => ({
-        ...tally,
-        count: 0,
-      }))
-    )
+  function resetToday() {
+    setActivityLog((currentLog) => ({
+      ...currentLog,
+      [todayKey]: {},
+    }))
   }
 
   return (
@@ -104,26 +116,30 @@ function App() {
           <p className="summary-number">{totalCount}</p>
         </div>
 
-        <button className="reset-button" onClick={resetTallies}>
-          Reset
+        <button className="reset-button" onClick={resetToday}>
+          Reset today
         </button>
       </section>
 
       <section className="tally-grid" aria-label="Tally buttons">
-        {tallies.map((tally) => (
-          <button
-          key={tally.id}
-          className="tally-card"
-          onClick={() => incrementTally(tally.id)}
-        >
-          <span className="tally-copy">
-            <span className="tally-name">{tally.name}</span>
-            <span className="tally-description">{tally.description}</span>
-          </span>
-        
-          <span className="tally-count">{tally.count}</span>
-        </button>
-        ))}
+        {activities.map((activity) => {
+          const count = todayActivity[activity.id]?.count || 0
+
+          return (
+            <button
+              key={activity.id}
+              className="tally-card"
+              onClick={() => incrementTally(activity.id)}
+            >
+              <span className="tally-copy">
+                <span className="tally-name">{activity.name}</span>
+                <span className="tally-description">{activity.description}</span>
+              </span>
+
+              <span className="tally-count">{count}</span>
+            </button>
+          )
+        })}
       </section>
     </main>
   )
