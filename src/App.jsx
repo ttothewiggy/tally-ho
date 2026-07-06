@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabaseClient'
 import './App.css'
 
 const activities = [
@@ -66,6 +67,19 @@ function getMonthDays(date) {
   })
 }
 
+function getMonthDateRange(date) {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+
+  const firstDay = new Date(year, month, 1).toLocaleDateString('en-CA')
+  const lastDay = new Date(year, month + 1, 0).toLocaleDateString('en-CA')
+
+  return {
+    firstDay,
+    lastDay,
+  }
+}
+
 function getDayTotals(dayActivity = {}) {
   return Object.values(dayActivity).reduce(
     (totals, activity) => {
@@ -88,23 +102,29 @@ function getMonthLabel(date) {
   })
 }
 
+function buildActivityLogFromRows(rows) {
+  return rows.reduce((log, row) => {
+    const currentDay = log[row.date_key] || {}
+
+    return {
+      ...log,
+      [row.date_key]: {
+        ...currentDay,
+        [row.activity_id]: {
+          count: row.count,
+          minutes: row.minutes,
+        },
+      },
+    }
+  }, {})
+}
+
 function App() {
   const todayKey = getTodayKey()
   const [visibleMonth, setVisibleMonth] = useState(new Date())
-
-  const [activityLog, setActivityLog] = useState(() => {
-    const savedActivityLog = localStorage.getItem('tally-ho-activity-log')
-
-    if (savedActivityLog) {
-      return JSON.parse(savedActivityLog)
-    }
-
-    return {}
-  })
-
-  useEffect(() => {
-    localStorage.setItem('tally-ho-activity-log', JSON.stringify(activityLog))
-  }, [activityLog])
+  const [activityLog, setActivityLog] = useState({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const todayActivity = activityLog[todayKey] || {}
 
@@ -121,53 +141,118 @@ function App() {
   const monthDays = getMonthDays(visibleMonth)
   const visibleMonthLabel = getMonthLabel(visibleMonth)
 
-  function incrementTally(activityId) {
-    setActivityLog((currentLog) => {
-      const currentDay = currentLog[todayKey] || {}
-      const currentActivity = currentDay[activityId] || {
-        count: 0,
-        minutes: 0,
-      }
+  useEffect(() => {
+    loadMonthActivity()
+  }, [visibleMonth])
 
-      return {
-        ...currentLog,
-        [todayKey]: {
-          ...currentDay,
-          [activityId]: {
-            ...currentActivity,
-            count: currentActivity.count + 1,
-          },
+  async function loadMonthActivity() {
+    setIsLoading(true)
+    setErrorMessage('')
+
+    const { firstDay, lastDay } = getMonthDateRange(visibleMonth)
+
+    const { data, error } = await supabase
+      .from('activity_log')
+      .select('date_key, activity_id, count, minutes')
+      .gte('date_key', firstDay)
+      .lte('date_key', lastDay)
+
+    if (error) {
+      console.error(error)
+      setErrorMessage('Could not load activity from Supabase.')
+      setIsLoading(false)
+      return
+    }
+
+    setActivityLog(buildActivityLogFromRows(data))
+    setIsLoading(false)
+  }
+
+  async function saveActivityUpdate(activityId, newActivity) {
+    const { error } = await supabase
+      .from('activity_log')
+      .upsert(
+        {
+          date_key: todayKey,
+          activity_id: activityId,
+          count: newActivity.count,
+          minutes: newActivity.minutes,
+          updated_at: new Date().toISOString(),
         },
-      }
-    })
+        {
+          onConflict: 'date_key,activity_id',
+        }
+      )
+
+    if (error) {
+      console.error(error)
+      setErrorMessage('That update did not save to Supabase.')
+      await loadMonthActivity()
+    }
+  }
+
+  function incrementTally(activityId) {
+    const currentDay = activityLog[todayKey] || {}
+    const currentActivity = currentDay[activityId] || {
+      count: 0,
+      minutes: 0,
+    }
+
+    const newActivity = {
+      ...currentActivity,
+      count: currentActivity.count + 1,
+    }
+
+    setActivityLog((currentLog) => ({
+      ...currentLog,
+      [todayKey]: {
+        ...currentDay,
+        [activityId]: newActivity,
+      },
+    }))
+
+    saveActivityUpdate(activityId, newActivity)
   }
 
   function addMinutes(activityId, minutesToAdd) {
-    setActivityLog((currentLog) => {
-      const currentDay = currentLog[todayKey] || {}
-      const currentActivity = currentDay[activityId] || {
-        count: 0,
-        minutes: 0,
-      }
+    const currentDay = activityLog[todayKey] || {}
+    const currentActivity = currentDay[activityId] || {
+      count: 0,
+      minutes: 0,
+    }
 
-      return {
-        ...currentLog,
-        [todayKey]: {
-          ...currentDay,
-          [activityId]: {
-            ...currentActivity,
-            minutes: currentActivity.minutes + minutesToAdd,
-          },
-        },
-      }
-    })
+    const newActivity = {
+      ...currentActivity,
+      minutes: currentActivity.minutes + minutesToAdd,
+    }
+
+    setActivityLog((currentLog) => ({
+      ...currentLog,
+      [todayKey]: {
+        ...currentDay,
+        [activityId]: newActivity,
+      },
+    }))
+
+    saveActivityUpdate(activityId, newActivity)
   }
 
-  function resetToday() {
+  async function resetToday() {
     setActivityLog((currentLog) => ({
       ...currentLog,
       [todayKey]: {},
     }))
+
+    const { error } = await supabase
+      .from('activity_log')
+      .delete()
+      .eq('date_key', todayKey)
+
+    if (error) {
+      console.error(error)
+      setErrorMessage('Could not reset today in Supabase.')
+      await loadMonthActivity()
+    }
   }
 
   function goToPreviousMonth() {
@@ -204,12 +289,16 @@ function App() {
         <div className="summary-stats">
           <div>
             <p className="summary-label">Today’s tallies</p>
-            <p className="summary-number">{totalCount}</p>
+            <p className="summary-number">
+              {isLoading ? '...' : totalCount}
+            </p>
           </div>
 
           <div>
             <p className="summary-label">Productive minutes</p>
-            <p className="summary-number">{totalMinutes}</p>
+            <p className="summary-number">
+              {isLoading ? '...' : totalMinutes}
+            </p>
           </div>
         </div>
 
@@ -217,6 +306,10 @@ function App() {
           Reset today
         </button>
       </section>
+
+      {errorMessage && (
+        <p className="error-message">{errorMessage}</p>
+      )}
 
       <section className="tally-grid" aria-label="Tally buttons">
         {activities.map((activity) => {
